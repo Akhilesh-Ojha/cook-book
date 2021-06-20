@@ -8,7 +8,10 @@ const recipeSchema = mongoose.Schema({
       step: String,
     },
   ],
-  image: String,
+  image: {
+    url: String,
+    filename: String,
+  },
   author: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "UserSchema",

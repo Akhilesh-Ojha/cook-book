@@ -26,15 +26,12 @@ export const getRecipes = async (req, res) => {
 
 export const getRecipesBySearch = async (req, res) => {
   const { searchQuery, tags } = req.query;
-
   try {
     let recipes;
-
     const searchTitle = new RegExp(searchQuery, "i");
     recipes = await Recipe.find({
       $or: [{ name: searchTitle }, { tags: { $in: tags?.split(",") } }],
     });
-
     res.status(200).json(recipes);
   } catch (error) {
     console.log(error);
@@ -53,16 +50,46 @@ export const getRecipe = async (req, res) => {
   }
 };
 
+export const getMostLikedRecipe = async (req, res) => {
+  const recipes = await Recipe.find();
+  const suggestedLikedRecipes = [];
+
+  // recipes.forEach(recipe => {
+  //   suggestedLikedRecipes.push({
+  //     recipeId:
+  //   })
+  // })
+  const recipeCount = recipes.map((recipe) => {
+    return {
+      ...recipe,
+      likeCount: recipe.likes.length,
+    };
+  });
+  recipeCount.sort((a, b) => {
+    return a.likeCount > b.likeCount;
+  });
+
+  for (let i = 0; i < 2; i++) {
+    suggestedLikedRecipes.push(recipeCount[i]);
+  }
+
+  console.log("Sorted", suggestedLikedRecipes);
+};
+
 export const createRecipe = async (req, res) => {
-  const recipeData = req.body;
+  const data = req.body.data;
+  const recipeData = JSON.parse(data);
   const userId = req.userId;
   const newRecipe = new Recipe(recipeData);
   newRecipe.author = userId;
+  newRecipe.image.url = req.file.path;
+  newRecipe.image.filename = req.file.filename;
   try {
     const recipe = await newRecipe.save();
     const user = await User.findById(userId);
     user.recipes.push(recipe);
     await user.save();
+    console.log(recipe);
     res.status(201).json(newRecipe);
   } catch (err) {
     res.json(err);
@@ -131,8 +158,6 @@ export const bookMarkRecipe = async (req, res) => {
   if (!req.userId) return res.json({ message: "Unauthenticated" });
 
   const user = await User.findById(userId);
-
-  console.log("User", user);
 
   const index = user.bookMarkedRecipes.findIndex((id) => id === recipeId);
 
